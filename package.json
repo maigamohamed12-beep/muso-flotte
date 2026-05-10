@@ -1,6 +1,7 @@
 {
   "name": "muso-flotte",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,4 +14,7 @@
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0"
+  }
+}
