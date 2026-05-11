@@ -576,20 +576,10 @@ const logout = async () => { await supabase.auth.signOut(); setUser(null); setPr
     </div>
   )
 
- if (authLoading) return (
-  <>
-    <style>{CSS}</style>
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', 
-      justifyContent:'center', background:'#eef2f5', flexDirection:'column', gap:16 }}>
-      <div style={{ fontSize:48 }}>🚘</div>
-      <div style={{ fontSize:14, fontWeight:600, color:'#00536A' }}>Chargement…</div>
-      <button 
-        onClick={() => window.location.reload()} 
-        style={{ marginTop:16, padding:'8px 20px', background:'#00536A', 
-          color:'white', border:'none', borderRadius:8, cursor:'pointer', fontSize:13 }}>
-        Cliquer ici si ça ne charge pas
-      </button>
-    </div>
+ if (authLoading) {
+  // Ne pas bloquer — afficher login si pas de user
+  if (!user) return <LoginScreen css={CSS} login={login} />
+}
   </>
 )
 
