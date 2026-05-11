@@ -7,77 +7,42 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
+    // Timeout de sécurité — arrêter le chargement après 5 secondes
+    const timeout = setTimeout(() => setLoading(false), 5000)
 
-    async function init() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        if (!mounted) return
-        
-        if (session?.user) {
-          setUser(session.user)
-          await fetchProfil(session.user.id, mounted)
-        }
-      } catch (e) {
-        console.error('Init error:', e)
-      } finally {
-        if (mounted) setLoading(false)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(timeout)
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        supabase.from('profils').select('*')
+          .eq('id', session.user.id).single()
+          .then(({ data }) => { setProfil(data); setLoading(false) })
+          .catch(() => setLoading(false))
+      } else {
+        setLoading(false)
       }
-    }
-
-    init()
+    }).catch(() => { clearTimeout(timeout); setLoading(false) })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (!mounted) return
+      (_e, session) => {
         setUser(session?.user ?? null)
         if (session?.user) {
-          fetchProfil(session.user.id, mounted)
+          supabase.from('profils').select('*')
+            .eq('id', session.user.id).single()
+            .then(({ data }) => setProfil(data))
+            .catch(() => setProfil(null))
         } else {
           setProfil(null)
         }
       }
     )
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
+    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
   }, [])
 
-  async function fetchProfil(uid, mounted = true) {
-    try {
-      const { data, error } = await supabase
-        .from('profils')
-        .select('*')
-        .eq('id', uid)
-        .single()
-
-      if (!mounted) return
-
-      if (error) {
-        console.error('Erreur profil:', error)
-        setProfil(null)
-      } else {
-        console.log('Profil chargé:', data)
-        setProfil(data)
-      }
-    } catch (e) {
-      console.error('Exception:', e)
-      if (mounted) setProfil(null)
-    } finally {
-      if (mounted) setLoading(false)
-    }
-  }
-
-  const login = (email, password) =>
-    supabase.auth.signInWithPassword({ email, password })
-
+  const login  = (e, p) => supabase.auth.signInWithPassword({ email:e, password:p })
   const logout = async () => {
     await supabase.auth.signOut()
-    setUser(null)
-    setProfil(null)
+    setUser(null); setProfil(null)
   }
 
   return { user, profil, loading, login, logout }
