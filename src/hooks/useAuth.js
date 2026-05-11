@@ -9,21 +9,47 @@ export function useAuth() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
-      session?.user ? fetchProfil(session.user.id) : setLoading(false)
+      if (session?.user) {
+        fetchProfil(session.user.id)
+      } else {
+        setLoading(false)
+      }
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfil(session.user.id)
-      else { setProfil(null); setLoading(false) }
-    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setUser(session?.user ?? null)
+        if (session?.user) {
+          await fetchProfil(session.user.id)
+        } else {
+          setProfil(null)
+          setLoading(false)
+        }
+      }
+    )
     return () => subscription.unsubscribe()
   }, [])
 
   async function fetchProfil(uid) {
-    const { data, error } = await supabase
-      .from('profils').select('*').eq('id', uid).single()
-    if (!error) setProfil(data)
-    setLoading(false)
+    try {
+      const { data, error } = await supabase
+        .from('profils')
+        .select('*')
+        .eq('id', uid)
+        .single()
+      if (error) {
+        console.error('Erreur profil:', error)
+        setProfil(null)
+      } else {
+        console.log('Profil chargé:', data)
+        setProfil(data)
+      }
+    } catch (e) {
+      console.error('Exception profil:', e)
+      setProfil(null)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const login  = (email, password) =>
