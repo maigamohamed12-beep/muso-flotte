@@ -576,23 +576,17 @@ const logout = async () => { await supabase.auth.signOut(); setUser(null); setPr
     </div>
   )
 
- if (authLoading) {
-  // Ne pas bloquer — afficher login si pas de user
-  if (!user) return <LoginScreen css={CSS} login={login} />
-}
+if (authLoading) return (
+  <>
+    <style>{CSS}</style>
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center',
+      justifyContent:'center', background:'#eef2f5', flexDirection:'column', gap:16 }}>
+      <div style={{ fontSize:48 }}>🚘</div>
+      <div style={{ fontSize:14, fontWeight:600, color:'#00536A' }}>Chargement…</div>
+    </div>
   </>
-)
-
-  if (!user) return <LoginScreen login={login} />
-
-  return (
-    <>
-      <style>{CSS}</style>
-      {toast   && <div className={`toast ${toast.type === 'error' ? 'te' : 'ts'}`}>{toast.msg}</div>}
-      {confirm && <Confirm msg={confirm.msg} danger={confirm.danger} onOk={confirm.onOk} onCancel={() => setConfirm(null)} />}
-
-      <div className="shell">
-        <div className={`sidebar ${mobOpen ? 'open' : ''}`}>
+  )
+}
           <div className="slogo">
             <div className="slogo-icon">🚘</div>
             <div>
