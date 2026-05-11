@@ -347,7 +347,39 @@ function LoginScreen({ login }) {
   )
 }
 export default function App() {
-  const { user, profil, loading: authLoading, login, logout } = useAuth()
+  const [user,    setUser]    = useState(null)
+const [profil,  setProfil]  = useState(null)
+const [authLoading, setAuthLoading] = useState(true)
+
+useEffect(() => {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.user) {
+      setUser(session.user)
+      supabase.from('profils').select('*').eq('id', session.user.id).single()
+        .then(({ data }) => {
+          setProfil(data)
+          setAuthLoading(false)
+        })
+        .catch(() => setAuthLoading(false))
+    } else {
+      setAuthLoading(false)
+    }
+  }).catch(() => setAuthLoading(false))
+
+  supabase.auth.onAuthStateChange((_e, session) => {
+    if (session?.user) {
+      setUser(session.user)
+      supabase.from('profils').select('*').eq('id', session.user.id).single()
+        .then(({ data }) => setProfil(data))
+    } else {
+      setUser(null)
+      setProfil(null)
+    }
+  })
+}, [])
+
+const login  = (email, pw) => supabase.auth.signInWithPassword({ email, password: pw })
+const logout = async () => { await supabase.auth.signOut(); setUser(null); setProfil(null) }
   const [fP, setFP] = useState('')
   const [fS, setFS] = useState('')
   const [fM, setFM] = useState('')
