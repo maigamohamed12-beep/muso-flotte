@@ -7,36 +7,55 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfil(session.user.id)
-      } else {
-        setLoading(false)
+    let mounted = true
+
+    async function init() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!mounted) return
+        
+        if (session?.user) {
+          setUser(session.user)
+          await fetchProfil(session.user.id, mounted)
+        }
+      } catch (e) {
+        console.error('Init error:', e)
+      } finally {
+        if (mounted) setLoading(false)
       }
-    })
+    }
+
+    init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        if (!mounted) return
         setUser(session?.user ?? null)
         if (session?.user) {
-          await fetchProfil(session.user.id)
+          fetchProfil(session.user.id, mounted)
         } else {
           setProfil(null)
-          setLoading(false)
         }
       }
     )
-    return () => subscription.unsubscribe()
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function fetchProfil(uid) {
+  async function fetchProfil(uid, mounted = true) {
     try {
       const { data, error } = await supabase
         .from('profils')
         .select('*')
         .eq('id', uid)
         .single()
+
+      if (!mounted) return
+
       if (error) {
         console.error('Erreur profil:', error)
         setProfil(null)
@@ -45,17 +64,21 @@ export function useAuth() {
         setProfil(data)
       }
     } catch (e) {
-      console.error('Exception profil:', e)
-      setProfil(null)
+      console.error('Exception:', e)
+      if (mounted) setProfil(null)
     } finally {
-      setLoading(false)
+      if (mounted) setLoading(false)
     }
   }
 
-  const login  = (email, password) =>
+  const login = (email, password) =>
     supabase.auth.signInWithPassword({ email, password })
 
-  const logout = () => supabase.auth.signOut()
+  const logout = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfil(null)
+  }
 
   return { user, profil, loading, login, logout }
 }
