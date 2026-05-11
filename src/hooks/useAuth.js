@@ -7,28 +7,43 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Timeout de sécurité — arrêter le chargement après 5 secondes
-    const timeout = setTimeout(() => setLoading(false), 5000)
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 3000)
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       clearTimeout(timeout)
       setUser(session?.user ?? null)
       if (session?.user) {
-        supabase.from('profils').select('*')
-          .eq('id', session.user.id).single()
-          .then(({ data }) => { setProfil(data); setLoading(false) })
-          .catch(() => setLoading(false))
+        supabase
+          .from('profils')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            setProfil(data)
+            setLoading(false)
+          })
+          .catch(() => {
+            setLoading(false)
+          })
       } else {
         setLoading(false)
       }
-    }).catch(() => { clearTimeout(timeout); setLoading(false) })
+    }).catch(() => {
+      clearTimeout(timeout)
+      setLoading(false)
+    })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_e, session) => {
         setUser(session?.user ?? null)
         if (session?.user) {
-          supabase.from('profils').select('*')
-            .eq('id', session.user.id).single()
+          supabase
+            .from('profils')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
             .then(({ data }) => setProfil(data))
             .catch(() => setProfil(null))
         } else {
@@ -36,13 +51,20 @@ export function useAuth() {
         }
       }
     )
-    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [])
 
-  const login  = (e, p) => supabase.auth.signInWithPassword({ email:e, password:p })
+  const login = (email, password) =>
+    supabase.auth.signInWithPassword({ email, password })
+
   const logout = async () => {
     await supabase.auth.signOut()
-    setUser(null); setProfil(null)
+    setUser(null)
+    setProfil(null)
   }
 
   return { user, profil, loading, login, logout }
